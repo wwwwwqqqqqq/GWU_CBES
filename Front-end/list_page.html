@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GitHub Web Scraper</title>
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
   <style>
     html,
     body {
@@ -13,9 +12,6 @@
       height: 100%;
       margin: 0;
       padding: 0;
-      display: flex;
-      flex-direction: column;
-      overflow-x: hidden;
     }
     #main {
       height: 100%;
@@ -33,10 +29,9 @@
       line-height: 50px;
       padding-left: 20px;
       font-size: 28px;
-      font-family: "Trebuchet MS", serif;
-      font-weight: bold;
-      font-style: italic;
-      box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
     .back-arrow {
       position: absolute;
@@ -48,28 +43,14 @@
     }
     .search-bar {
       text-align: center;
-      margin-top: 20px;
       margin-bottom: 20px;
     }
     .search-bar input[type="text"] {
-      justify-content: center;
-      padding: 15px;
-      width: 600px;
-      font-size: 24px;
-      border: 5px solid darkgray;
-      color: gray;
+      width: 800px;
+      height: 30px;
+      padding: 5px;
+      font-size: 16px;
       border-radius: 50px;
-      padding-right: 60px;
-      box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
-    }
-    .search-button {
-      cursor: pointer;
-      background-color: transparent;
-      border: none;
-      outline: none;
-      color: gray; 
-      padding-right: 20px;
-      font-size: 28px; 
     }
     .dropdown-container {
       display: flex;
@@ -78,27 +59,36 @@
     }
     .dropdown-wrapper {
       margin-top: 20px;
-      margin-bottom: 20px;
     }
     .dropdown-wrapper select {
-      width: 200px;
+      width: 150px;
       padding: 10px;
-      font-size: 18px;
-      border: 3px solid darkgray;
-      color: gray;
+      font-size: 12px;
+      border: 0px solid #ccc;
       border-radius: 5px;
-      margin-bottom: 5px; /* Add some margin between dropdowns */
-      margin-left: 25px; /* Add horizontal margin */
-      margin-right: 25px; /* Add horizontal margin */
-      font-family: "Trebuchet MS", serif; /* Set font family */
-      box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
+      margin-bottom: 30px;
+      margin-left: 50px;
+      margin-right: 50px;
+    }
+    .compare-button {
+      position: absolute;
+      top: 60px;
+      right: 100px;
+      padding: 10px 20px;
+      font-size: 28px;
+      border: 0px solid grey;
+      color: grey;
+      border-radius: 50px;
+      text-decoration: none;
+      cursor: pointer;
+      font-weight: bold;
     }
     /* Repository container style */
     #repositoryInfo {
       display: flex;
       flex-direction: column;
       align-items: center;
-      width: 80%;
+      width: 100%;
     }
 
     .repository-container {
@@ -122,29 +112,27 @@
 
     /* Repository left style */
     .repository-left {
-      width: calc(40%);
-      margin-left: 20px;
+      width: calc(33.33% - 50px);
       margin-right: 20px;
       text-align: left;
     }
 
     /* Repository mid style */
     .repository-mid {
-      width: calc(20%);
+      width: calc(33.33% - 100px);
       text-align: center;
     }
 
     /* Repository right style */
     .repository-right {
-      width: calc(20%);
+      width: calc(33.33% - 50px);
       margin-left: 20px;
-      margin-right: 20px;
       text-align: right;
     }
 
     /* Repository name link style */
     .repo-link {
-      color: darkblue;
+      color: blue;
       font-size: 30px;
       text-decoration: underline;
       cursor: pointer;
@@ -163,21 +151,10 @@
       font-size: 20px;
     }
 
-    .repository-right ul {
-      list-style-type: none; 
-      padding-left: 0;
-    }
-
     .space {
       margin: 0 5px;
     }
 
-    #paginationContainer {
-      display: flex;
-      justify-content: space-between; 
-      align-items: center; 
-      padding: 10px 0; 
-    }
 
     /* Pagination style */
     .pagination {
@@ -186,26 +163,17 @@
       margin-top: 20px;
     }
     .pagination-button {
-      margin: 0 8px;
-      padding: 8px 12px;
+      margin: 0 5px;
+      padding: 5px 10px;
       background-color: #ccc;
       border: none;
       border-radius: 3px;
       text-decoration: none;
       cursor: pointer;
-      font-size: 16px;
     }
     .pagination-button.active {
       background-color: #007bff;
       color: #fff;
-    }
-    #itemsPerPage {
-      padding: 8px 12px; 
-      border-radius: 3px; 
-      background-color: #ccc; 
-      border: none;
-      font-size: 16px; 
-      cursor: pointer;
     }
   </style>
 </head>
@@ -213,27 +181,24 @@
 <div class="top-bar">
   <span onclick="window.location.href='home.html';" style="cursor:pointer;">GitHub Web Scraper</span>
 </div>
-<div class="back-arrow" onclick="window.location.href='home.html';"><i class="fas fa-arrow-left"></i></div>
+<div class="back-arrow" onclick="history.back();"><i class="fas fa-arrow-left"></i></div>
 <div id="main">
   <div class="search-bar">
-      <div style="position: relative; display: flex; align-items: center;">
-          <input id="searchInput" type="text" placeholder="Enter search keyword">
-              <button onclick="updateParameters(1)" class="search-button" style="position: absolute; right: 0; top: 0; height: 100%; border: none; background: none;">
-                  <i class="fas fa-search"></i>
-              </button>
-      </div>
+    <form id="searchForm" action="/search" method="GET">
+      <input id="searchInput" type="text" name="keyword" placeholder="Enter search keyword...">
+    </form>
   </div>
   <div class="dropdown-container">
     <div class="dropdown-wrapper">
       <!-- Language dropdown -->
       <select id="Language">
-        <option value="">Select Language</option>
+        <option value="" disabled selected>Select Language</option>
         <option value="C">C</option>
         <option value="C++">C++</option>
       </select>
       <!-- License dropdown -->
       <select id="License">
-        <option value="">Select License</option>
+        <option value="" disabled selected>Select License</option>
         <option value="MIT">MIT</option>
         <option value="GPL">GPL</option>
         <option value="Apache">Apache</option>
@@ -241,29 +206,24 @@
       </select>
       <!-- Category dropdown -->
       <select id="Category">
-        <option value="">Select Category</option>
+        <option value="" disabled selected>Select Category</option>
         <option value="Recent Updated">Recent Updated</option>
         <option value="Most Popular">Most Popular</option>
-        <option value="Least Dependencies">Least Dependencies</option>
+        <option value="Without Dependency">Without Dependency</option>
+        <option value="TBD">TBD</option>
       </select>
     </div>
   </div>
   <div id="repositoryInfo"></div>
-  <div id="paginationContainer" style="display: flex; justify-content: space-between; align-items: center;">
-    <div id="pagination"></div>
-    <select id="itemsPerPage" onchange="updateParameters(1)" style="margin-left: 20px;">
-        <option value="20" selected>20 per page</option>
-        <option value="30">30 per page</option>
-        <option value="50">50 per page</option>
-    </select>
-  </div>
+  <div id="pagination" class="pagination"></div>
+  <div id="pageInfo" class="page-info"></div>
 </div>
 
 <script>
   // Function to fetch data from the backend with filters
-  async function fetchDataFromBackendWithFilters(keyword, language, license, category, pageNumber, pageSize) {
+  async function fetchDataFromBackendWithFilters(keyword, language, license, category, pageNumber) {
     try {
-      const requestData = { keyword: keyword, page: pageNumber, page_size: pageSize };
+      const requestData = { keyword: keyword, page: pageNumber };
       if (language) requestData.language = language;
       if (license) requestData.license = license;
       if (category) requestData.category = category;
@@ -293,19 +253,19 @@
       repositoryContainer.classList.add('repository-container');
       repositoryContainer.innerHTML = `
         <div class = "repository-left">
-          <p class = "metadata">${repository.owner_name || 'N/A'}<span class = "space"></span> • <span class = "space"></span>${repository.updated_at || 'N/A'}<span class = "space"></span> • <span class = "space"></span>${repository.releases[0] ? repository.releases[0].name : 'No Release'}</p>
+          <p class = "metadata">${repository.owner_name || 'N/A'}<span class = "space"></span> • <span class = "space"></span>${repository.updated || 'N/A'}<span class = "space"></span> • <span class = "space"></span>${repository.releases[0] ? repository.releases[0].name : 'N/A'}</p>
           <h2><a href = "${repository.html_url}" class = "repo-link" target = "_blank">${repository.name}</a></h2>
           <p>${repository.description || 'N/A'}</p>
-          <p class = "metadata">${repository.language || 'N/A'}<span class = "space"></span> • <span class="space"></span> Issues: ${repository.open_issues || 'No Issue'}<span class = "space"></span> • <span class = "space"></span>${repository.created_at}</p>
+          <p class = "metadata">${repository.language || 'N/A'}<span class = "space"></span> • <span class="space"></span> Issues: ${repository.open_issues || 'N/A'}<span class = "space"></span> • <span class = "space"></span>${repository.updated_at}</p>
         </div>
 
         <div class = "repository-mid">
-          <p class = "metadata">Stars: ${repository.stars || '0'} <span class = "space"></span> • <span class = "space"></span> Watchers: ${repository.watchers || '0'}</p>
+          <p class = "metadata">Stars: ${repository.stars || 'N/A'} <span class = "space"></span> • <span class = "space"></span> Watchers: ${repository.watchers || 'N/A'}</p>
           <p class = "license">${repository.project_license || 'N/A'}</p>
         </div>
 
         <div class="repository-right">
-          <p class="dependency">Dependencies</p>
+          <p class="dependency">Dependency</p>
           <ul>
             ${[...new Set(repository.dependency_project_id.map(dependency => dependency.full_name))].slice(0, 4).map(dependency => `<li>${dependency}</li>`).join('')}
           </ul>
@@ -319,86 +279,85 @@
 
 <script>
   // Function to render pagination
-  function renderPagination(dataLength) {
-    const itemsPerPage = parseInt(document.getElementById('itemsPerPage').value);
-    const totalPages = Math.ceil(dataLength / itemsPerPage);
-    const currentPage = getCurrentPage()[0];
-    let paginationHTML = '';
-    const range = 2; // how many pages we need before and after the current page
-
-    for (let i = Math.max(1, currentPage - range); i <= Math.min(totalPages, currentPage + range); i++) {
-        if (i === currentPage) {
-            paginationHTML += `<button class="pagination-button active" onclick="updateParameters(${i})">${i}</button>`;
-        } else {
-            paginationHTML += `<button class="pagination-button" onclick="updateParameters(${i})">${i}</button>`;
-        }
+function renderPagination(dataLength) {
+  const totalPages = Math.ceil(dataLength / 20);
+  let paginationHTML = '';
+  const currentPage = getCurrentPage();
+  for (let i = 1; i <= totalPages; i++) {
+    if (i === currentPage) {
+      paginationHTML += `<button class="pagination-button active" onclick="onPageButtonClick(${i})">${i}</button>`;
+    } else {
+      paginationHTML += `<button class="pagination-button" onclick="onPageButtonClick(${i})">${i}</button>`;
     }
-
-    // add the first and last page
-    if (currentPage > range + 1) {
-        paginationHTML = `<button class="pagination-button" onclick="updateParameters(1)">1</button> ... ` + paginationHTML;
-    }
-    if (currentPage < totalPages - range) {
-        paginationHTML += ` ... <button class="pagination-button" onclick="updateParameters(${totalPages})">${totalPages}</button>`;
-    }
-
-    document.getElementById('pagination').innerHTML = paginationHTML;
   }
+  const paginationElement = document.getElementById('pagination');
+  paginationElement.innerHTML = paginationHTML;
+}
 
-  // Function to get current page info
-  function getCurrentPage() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const page = parseInt(urlParams.get('page')) || 1;
-    const pageSize = parseInt(urlParams.get('pageSize')) || 20;
-    return [page, pageSize];
-  }
+// Function to get current page number
+function getCurrentPage() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const page = parseInt(urlParams.get('page')) || 1;
+  return page;
+}
 
-  // Function to go to a specific page
-  function goToPage(pageNumber, pageSize, keyword, language, license, category) {
-    const url = new URL(window.location.href);
-    url.searchParams.set('page', pageNumber);
-    url.searchParams.set('pageSize', pageSize);
-    url.searchParams.set('query', keyword);
-    url.searchParams.set('language', language);
-    url.searchParams.set('license', license);
-    url.searchParams.set('category', category);
-    const newUrl = url.toString();
-    window.location.href = newUrl;
-  }
+// Function to go to a specific page
+function goToPage(pageNumber, keyword, language, license, category) {
+  const url = new URL(window.location.href);
+  url.searchParams.set('page', pageNumber);
+  const newUrl = url.toString();
+  window.location.href = newUrl;
+}
 
-  function updateParameters(pageNumber) {
-    const keyword = $('#searchInput').val();
-    const language = $('#Language').val();
-    const license = $('#License').val();
-    const category = $('#Category').val();
-    const pageSize = $('#itemsPerPage').val();
-    goToPage(pageNumber, pageSize, keyword, language, license, category);
-  }
+
+// Call this function when clicking pagination button
+function onPageButtonClick(pageNumber) {
+  const keyword = $('#searchInput').val();
+  const language = $('#Language').val();
+  const license = $('#License').val();
+  const category = $('#Category').val();
+  goToPage(pageNumber, keyword, language, license, category);
+}
+
+
+  // Function to get data for a specific page
+  //function getDataForPage(data, pageNumber) {
+    //const itemsPerPage = 20;
+    //const startIndex = (pageNumber - 1) * itemsPerPage;
+    //const endIndex = startIndex + itemsPerPage;
+    //return data.slice(startIndex, endIndex);
+  //}
 
   // Function to handle search functionality
-  async function searchData() {
-    const keyword = $('#searchInput').val();
-    const language = $('#Language').val();
-    const license = $('#License').val();
-    const category = $('#Category').val();
-    
-    try {
-      const [pageNumber, pageSize] = getCurrentPage(); // Get current page info
-      const [data, totalCount] = await fetchDataFromBackendWithFilters(keyword, language, license, category, pageNumber, pageSize);
-      renderRepositoryInfo(data);
-      renderPagination(totalCount);
-    } catch (error) {
-      console.error('Error fetching data: ', error);
-      $('#repositoryInfo').empty(); // delete search result
-      $('#pagination').empty(); // delete page button
-      $('#pageInfo').text(''); // delete page information
-    }
+async function searchData() {
+  const keyword = $('#searchInput').val();
+  const language = $('#Language').val();
+  const license = $('#License').val();
+  const category = $('#Category').val();
+  if (!keyword) {
+    $('#repositoryInfo').empty(); // delete search result
+    $('#pagination').empty(); // delete page button
+    $('#pageInfo').text(''); // delete page information
+    return;
   }
+  try {
+    const pageNumber = getCurrentPage(); // Get current page number
+    const [data, totalCount] = await fetchDataFromBackendWithFilters(keyword, language, license, category, pageNumber);
+    renderRepositoryInfo(data);
+    renderPagination(totalCount);
+    updateURL(keyword, language, license, category); // Update URL parameters
+  } catch (error) {
+    console.error('Error fetching data: ', error);
+    $('#repositoryInfo').empty(); // delete search result
+    $('#pagination').empty(); // delete page button
+    $('#pageInfo').text(''); // delete page information
+  }
+}
+
 
   // Event listener to handle search on pressing Enter key
-  $(document).on('keypress', function(e) {
+  $(document).on('keypress', '#searchInput', function(e) {
     if (e.which === 13) { // Check if Enter key is pressed
-      updateParameters(1);
       searchData(); // Call the searchData function
       return false; // Prevent form submission
     }
@@ -409,24 +368,62 @@
     searchData();
   });
 
+  // Function to update URL with search parameters
+function updateURL(keyword, language, license, category) {
+  const url = new URL(window.location.href);
+  const searchParams = new URLSearchParams(url.search);
+
+  if (keyword) searchParams.set('keyword', keyword);
+  else searchParams.delete('keyword');
+
+  if (language) searchParams.set('language', language);
+  else searchParams.delete('language');
+
+  if (license) searchParams.set('license', license);
+  else searchParams.delete('license');
+
+  if (category) searchParams.set('category', category);
+  else searchParams.delete('category');
+
+  url.search = searchParams.toString();
+  window.history.pushState({ path: url.toString() }, '', url.toString());
+}
+
+// Call this function when search parameters change
+function onSearchParametersChange() {
+  const keyword = $('#searchInput').val();
+  const language = $('#Language').val();
+  const license = $('#License').val();
+  const category = $('#Category').val();
+  updateURL(keyword, language, license, category);
+  searchData();
+}
+
+// Event listeners for search input and dropdown change
+$(document).on('input', '#searchInput', function() {
+  onSearchParametersChange();
+});
+$(document).on('change', '#Language, #License, #Category', function() {
+  onSearchParametersChange();
+});
+
+
 </script>
 
 <script>
         document.addEventListener("DOMContentLoaded", function(event) {
             // Extract query parameters from URL
             const urlParams = new URLSearchParams(window.location.search);
-            const keyword = urlParams.get('query') || '';
-            const language = urlParams.get('language') || '';
-            const license = urlParams.get('license') || '';
-            const category = urlParams.get('category') || '';
-            const pageSize = urlParams.get('pageSize') || 20;
+            const keyword = urlParams.get('keyword');
+            const language = urlParams.get('language');
+            const license = urlParams.get('license');
+            const category = urlParams.get('category');
 
             // Set input field values and select dropdowns based on query parameters
             document.getElementById('searchInput').value = keyword;
             document.getElementById('Language').value = language;
             document.getElementById('License').value = license;
             document.getElementById('Category').value = category;
-            document.getElementById('itemsPerPage').value = pageSize;
         });
     </script>
 
