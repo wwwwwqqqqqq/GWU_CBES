@@ -1,5 +1,5 @@
 from pymongo import MongoClient
-
+from preprocess_text import preprocess_text
 
 class DatabaseManager:
     def __init__(self, mongo_host, mongo_port):
@@ -31,13 +31,44 @@ class DatabaseManager:
         It returns a cursor object. You need to iterate over the cursor to get the documents."""
         return self.collection.find(query)
     
-    def find(self, d=None, limit=-1, sort_by=None, sort_order=-1, skip=0, sort_by_array_size=None):
+    def find(self, keywords=None, d=None, limit=-1, sort_by=None, sort_order=-1, skip=0, sort_by_array_size=None):
         """Find documents in the collection, if query is not provided, it will return all documents.
         It returns a list of dictionaries."""
         pipeline = []
 
         if d:
             pipeline.append({"$match": d})
+        
+        
+        pipeline.append({
+            "$addFields": {
+                "nameMatch": {"$regexMatch": {"input": "$name", "regex": keywords, "options": "i"}},
+                "descriptionMatch": {"$regexMatch": {"input": "$description", "regex": keywords, "options": "i"}},
+                "ownerNameMatch": {"$regexMatch": {"input": "$owner_name", "regex": keywords, "options": "i"}},
+            }
+        })
+        
+
+        pipeline.append({
+            "$addFields": {
+                "sortPriority": {
+                    "$cond": {
+                        "if": "$nameMatch", "then": 1,
+                        "else": {
+                            "$cond": {
+                                "if": "$descriptionMatch", "then": 2,
+                                "else": {
+                                    "$cond": {
+                                        "if": "$ownerNameMatch", "then": 3,
+                                        "else": 4
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        })
 
         # add the size of the sorted field
         if sort_by_array_size:
@@ -52,6 +83,8 @@ class DatabaseManager:
             pipeline.append({"$sort": {sort_by: sort_order}})
         elif sort_by_array_size:
             pipeline.append({"$sort": {"count_for_sort": sort_order}})
+        else:
+            pipeline.append({"$sort": {"sortPriority": 1}})
 
         # Apply skip and limit
         if skip > 0:
@@ -103,11 +136,16 @@ class DatabaseManager:
 
     def search_bar(self, keyword=None, language=None, project_license=None, limit_num=-1, category=None, sort_order=-1,
                    page=1, entryNum=10):
+        
         """Search the collection based on the keyword, language, license, and category.
         It returns a list of dictionaries, also returns the total number of documents.
         If num is provided, it will return the number of documents specified by num.
         If category is provided, it will sort the documents based on the category.
         If page is provided, it will return the documents in that page."""
+
+        # Remove non alpha-numerical characters from the keyword
+        keywords = [preprocess_text(keyword) for keyword in keyword.split()]
+        print(keywords)
         query = {}
         entry_per_page = entryNum
         skip_row = (page - 1) * entry_per_page
@@ -116,22 +154,43 @@ class DatabaseManager:
         if project_license:
             query['project_license'] = {"$regex": project_license, "$options": "i"}
         if keyword:
-            query['full_name'] = {"$regex": keyword, "$options": "i"}
+            query['$or'] = [
+                {"name": {"$regex": '|'.join(keywords), "$options": "i"}},
+                {"description": {"$regex": '|'.join(keywords), "$options": "i"}},
+                {"owner_name": {"$regex": '|'.join(keywords), "$options": "i"}}
+            ]
+        #if keywords:
+        #    query['$or'] = []
+        #    for keyword in keywords:
+        #        query['$or'].extend([
+        #            {"name": {"$regex": keyword, "$options": "i"}},
+        #            {"description": {"$regex": keyword, "$options": "i"}},
+        #            {"owner_name": {"$regex": keyword, "$options": "i"}}
+        #        ])
         cnt = self._count(query)
         if category:
             if category == "Recent Updated":
-                ans = self.find(query, sort_by='updated_at', sort_order=-1, limit=limit_num, skip=skip_row)[
+                ans = self.find(keyword=keyword, d=query, sort_by='updated_at', sort_order=-1, limit=limit_num, skip=skip_row)[
                       :entry_per_page]
             elif category == "Most Popular":
-                ans = self.find(query, sort_by='stars', sort_order=-1, limit=limit_num, skip=skip_row)[
+                ans = self.find(keyword=keyword, d=query, sort_by='stars', sort_order=-1, limit=limit_num, skip=skip_row)[
                       :entry_per_page]
             elif category == "Least Dependencies":
-                ans = self.find(query, sort_by_array_size='dependency_project_id', sort_order=1, limit=limit_num,
+                ans = self.find(keyword=keyword, d=query, sort_by_array_size='dependency_project_id', sort_order=1, limit=limit_num,
                                 skip=skip_row)[:entry_per_page]
         else:
-            ans = self.find(query, sort_by=category, sort_order=sort_order, limit=limit_num, skip=skip_row)[
+            ans = self.find(keywords=keyword, d=query, sort_by=category, sort_order=sort_order, limit=limit_num, skip=skip_row)[
                   :entry_per_page]
         return ans, cnt
+    
+    def create_text_indexes(self):
+        """Create text indexes on the 'name', 'description', and 'owner_name' fields."""
+        self.collection.create_index([
+            ("name", "text"),
+            ("description", "text"),
+            ("owner_name", "text")
+        ])
+    
         
 def insertion_test():
     data=[{'project_id': 10000, 
@@ -162,13 +221,14 @@ def insertion_test():
            'updated_at': '2024-01-18T09:05:33Z', 'pushed_at': '2021-06-17T17:32:26Z', 
            'created_at': '2020-08T17:32:26Z', 'disabled': False}
            ]
-    db=DatabaseManager('3.139.100.241', 27017)
+    db=DatabaseManager('13.59.153.177', 27017)
     db.connect_mongo("just_for_test", "just_for_test")
     db.insert(data)
+    db.create_text_indexes()
 
 def search_test():
 
-    connection = DatabaseManager('3.139.100.241', 27017)
+    connection = DatabaseManager('13.59.153.177', 27017)
     connection.connect_mongo("test_database", "test_collection")
 
     # pagaination test
@@ -179,18 +239,19 @@ def search_test():
     # for i in range(len(res)):
     #     print(res[i],'\t', (page-1)*entryNum+i+1,'/',total)
 
-    # fuzzy search test
-    print(connection.search_bar(keyword='dj',category='stars',page=1, entryNum=10)[0])
+    # fuzzy search testdb.collection.createIndex({name: "text", description: "text", owner_name: "text"})
+    #connection.collection.createIndex({"name": "text", "description": "text", "owner_name": "text"})
+    print(connection.search_bar(keyword='tensor',language=None,project_license= None, limit_num=-1, category=None, sort_order=-1, page=1, entryNum=20)[0])
     
 
 if __name__ == "__main__":
-    # search_test()
-
-    connection = DatabaseManager('3.139.100.241', 27017)
-    connection.connect_mongo("test_database", "test_collection")
-    print(connection._count({}))
+    search_test()
+    #insertion_test
+    #connection = DatabaseManager('13.59.153.177', 27017)
+    #connection.connect_mongo("test_database", "test_collection")
+    #print(connection._count({}))
     # connection.drop()
 
-    # query = {"full_name": "django/django"}
-    # result = list(connection._find(query).limit(20))
-    # print(result)
+    #query = {"full_name": "django/django"}
+    #result = list(connection._find(query).limit(20))
+    #print(result)
